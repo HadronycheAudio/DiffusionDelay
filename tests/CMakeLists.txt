@@ -8,12 +8,16 @@ add_executable(DiffusionDelayTests
     Harness.cpp
     CompatibilityTests.cpp
     EchoTests.cpp
-    PanelTest.cpp
 )
 
 target_include_directories(DiffusionDelayTests PRIVATE "${CMAKE_SOURCE_DIR}/src")
 target_link_libraries(DiffusionDelayTests PRIVATE hadronyche_testhost)
 add_dependencies(DiffusionDelayTests DiffusionDelay)
+
+# It drives a real window with Windows' mouse messages.
+if(WIN32)
+    target_sources(DiffusionDelayTests PRIVATE PanelTest.cpp)
+endif()
 
 set(DIFFUSIONDELAY_TESTS
     class-ids parameter-ids parameter-ranges saved-format buses latency-report
