@@ -57,7 +57,7 @@ target_compile_definitions(DiffusionDelay PRIVATE
     DIFFUSIONDELAY_VERSION="${PROJECT_VERSION}"
     $<$<PLATFORM_ID:Windows>:NOMINMAX>
 )
-target_link_libraries(DiffusionDelay PRIVATE sdk vstgui_support hadronyche_dsp hadronyche_vst)
+target_link_libraries(DiffusionDelay PRIVATE sdk vstgui_support hadronyche_dsp hadronyche_vst hadronyche_gui)
 
 # --- Tests --------------------------------------------------------------------
 enable_testing()
