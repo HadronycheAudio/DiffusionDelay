@@ -28,7 +28,7 @@ set(DIFFUSIONDELAY_TESTS
     sync-time sync-follows-tempo sync-off-ignores-tempo sync-without-tempo sync-stays-in-range
     time-glide held-note-stays-bounded dc-offset broken-input extreme-settings sample-rates
     dry-wet volume block-sizes determinism silence-flags parameter-state parameter-text
-    panel
+    panel panel-opens
 )
 
 hadronyche_add_host_tests(DiffusionDelayTests DiffusionDelay ${DIFFUSIONDELAY_TESTS})
