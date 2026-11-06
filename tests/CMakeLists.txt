@@ -9,18 +9,12 @@ add_executable(DiffusionDelayTests
     CompatibilityTests.cpp
     EchoTests.cpp
     PanelTest.cpp
-    "${VST3_SDK_DIR}/pluginterfaces/base/funknown.cpp"
-    "${VST3_SDK_DIR}/pluginterfaces/base/coreiids.cpp"
-    "${VST3_SDK_DIR}/pluginterfaces/base/ustring.cpp"
-    "${VST3_SDK_DIR}/public.sdk/source/common/memorystream.cpp"
 )
 
-target_include_directories(DiffusionDelayTests PRIVATE "${VST3_SDK_DIR}" "${CMAKE_SOURCE_DIR}/src")
-target_compile_definitions(DiffusionDelayTests PRIVATE UNICODE _UNICODE NOMINMAX)
-target_link_libraries(DiffusionDelayTests PRIVATE hadronyche_params user32 gdi32)
+target_include_directories(DiffusionDelayTests PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(DiffusionDelayTests PRIVATE hadronyche_testhost)
 add_dependencies(DiffusionDelayTests DiffusionDelay)
 
-# One CTest test per test in the program, so that a single one can be run with ctest -R.
 set(DIFFUSIONDELAY_TESTS
     class-ids parameter-ids parameter-ranges saved-format buses latency-report
     clean-echo echo-time-accuracy feedback-decay endless-clean
@@ -33,7 +27,4 @@ set(DIFFUSIONDELAY_TESTS
     panel
 )
 
-foreach(test_name ${DIFFUSIONDELAY_TESTS})
-    add_test(NAME ${test_name} COMMAND DiffusionDelayTests "$<TARGET_FILE:DiffusionDelay>" ${test_name})
-    set_tests_properties(${test_name} PROPERTIES TIMEOUT 300)
-endforeach()
+hadronyche_add_host_tests(DiffusionDelayTests DiffusionDelay ${DIFFUSIONDELAY_TESTS})
