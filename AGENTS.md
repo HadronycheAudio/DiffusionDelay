@@ -206,6 +206,7 @@ Rules for releases:
 - It has only been used on Windows, and other hosts than the owner's haven't been tried.
 - The installer isn't code-signed, so Windows warns users when they run it. The macOS one isn't signed by Apple or notarized, so macOS refuses it until the user allows it.
 - The Linux version has only been tried briefly, in REAPER on Debian 13, by the owner.
+- The test that opens the panel crashed once on CI as the test program exited, after all its checks had passed. It happened once in about 33 runs, and about 260 further runs didn't reproduce it. The cause isn't known, and it hasn't been seen in a host.
 - The Mac version hasn't been used in a real host on a real Mac. The tests measure its output, and Apple's `auval` validates it, on CI only.
 - Holding a loud note into 100% feedback can reach about +9 dB, which is where the limiter in the feedback stops it. There's no limiter on the output.
 - At 100% feedback, the mass settles below the first repeat, by 1.2 dB at 100% Diffusion and 4.4 dB at 30%. The output is a stereo tap of eight channels, so it can't hear all the energy once it has scattered, and the output gain can't make up for all of that without the first repeat becoming louder than the input.
