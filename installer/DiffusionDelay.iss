@@ -45,4 +45,5 @@ Source: "..\build\VST3\Release\DiffusionDelay.vst3\*"; DestDir: "{app}\Diffusion
 Source: "..\LICENSE"; DestDir: "{app}\DiffusionDelay.vst3\Contents\Resources\Licenses"; DestName: "DiffusionDelay-LICENSE.txt"; Flags: ignoreversion
 Source: "..\external\vst3sdk\LICENSE.txt"; DestDir: "{app}\DiffusionDelay.vst3\Contents\Resources\Licenses"; DestName: "VST3-SDK-LICENSE.txt"; Flags: ignoreversion
 Source: "..\external\vst3sdk\vstgui4\LICENSE"; DestDir: "{app}\DiffusionDelay.vst3\Contents\Resources\Licenses"; DestName: "VSTGUI-LICENSE.txt"; Flags: ignoreversion
+Source: "..\external\hadronychecore\LICENSE"; DestDir: "{app}\DiffusionDelay.vst3\Contents\Resources\Licenses"; DestName: "HadronycheCore-LICENSE.txt"; Flags: ignoreversion
 Source: "NOTICE.txt"; DestDir: "{app}\DiffusionDelay.vst3\Contents\Resources\Licenses"; Flags: ignoreversion
