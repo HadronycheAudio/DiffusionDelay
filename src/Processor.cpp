@@ -2,16 +2,15 @@
 
 #include "Controller.h"
 
+#include "hadronyche/dsp/Denormals.h"
+#include "hadronyche/dsp/Gain.h"
+
 #include "pluginterfaces/vst/ivstparameterchanges.h"
 #include "pluginterfaces/vst/ivstprocesscontext.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-
-#if defined(_M_X64) || defined(__x86_64__)
-#include <xmmintrin.h>
-#endif
 
 using namespace Steinberg;
 
@@ -31,52 +30,12 @@ constexpr int kControlInterval = 16;
 // Below this, there's nothing to hear. It's about -140 dB.
 constexpr float kSilentPeak = 1e-7f;
 
-// Stops very small values in the filters from slowing the CPU down.
-class FlushDenormals
-{
-public:
-#if defined(_M_X64) || defined(__x86_64__)
-    FlushDenormals () : _previous (_mm_getcsr ()) { _mm_setcsr (_previous | 0x8040); }
-    ~FlushDenormals () { _mm_setcsr (_previous); }
-
-private:
-    unsigned int _previous;
-#endif
-};
-
-double decibelsToGain (double db)
-{
-    return std::pow (10.0, db / 20.0);
-}
-
-double volumeToGain (double db)
-{
-    return db <= kVolumeSilenceDb ? 0.0 : decibelsToGain (db);
-}
-
-// At 50%, both play at full level.
-double dryGainFor (double percent)
-{
-    return std::min (1.0, 2.0 * (1.0 - percent / 100.0));
-}
-
-double wetGainFor (double percent)
-{
-    return std::min (1.0, 2.0 * percent / 100.0);
-}
-
 } // namespace
 
-Processor::Processor ()
+Processor::Processor () : _params (getParamSpec)
 {
     setControllerClass (Controller::getClassFUID ());
     processContextRequirements.needTempo ();
-
-    for (Vst::ParamID id = 0; id < kParamCount; ++id)
-    {
-        const auto& spec = getParamSpec (id);
-        _params[id] = plainToNormalized (spec, spec.defaultValue);
-    }
 }
 
 tresult PLUGIN_API Processor::initialize (FUnknown* context)
@@ -125,7 +84,7 @@ uint32 PLUGIN_API Processor::getTailSamples ()
 
 double Processor::plain (ParamId id) const
 {
-    return normalizedToPlain (getParamSpec (id), _params[id]);
+    return _params.plain (id);
 }
 
 double Processor::getTimeMs () const
@@ -138,26 +97,6 @@ double Processor::getTimeMs () const
     return std::clamp (beats * 60000.0 / _tempo, kMinTimeMs, kMaxTimeMs);
 }
 
-void Processor::readParameterChanges (Vst::IParameterChanges* changes)
-{
-    if (!changes)
-        return;
-
-    const int32 count = changes->getParameterCount ();
-    for (int32 i = 0; i < count; ++i)
-    {
-        auto* queue = changes->getParameterData (i);
-        if (!queue || queue->getParameterId () >= kParamCount || queue->getPointCount () == 0)
-            continue;
-
-        // Smoothing covers the rest, so only the last value in each block is needed.
-        int32 offset = 0;
-        Vst::ParamValue value = 0.0;
-        if (queue->getPoint (queue->getPointCount () - 1, offset, value) == kResultTrue)
-            _params[queue->getParameterId ()] = value;
-    }
-}
-
 void Processor::applyParameters ()
 {
     const int timeSamples = static_cast<int> (std::lround (getTimeMs () / 1000.0 * processSetup.sampleRate));
@@ -168,11 +107,11 @@ void Processor::applyParameters ()
     }
 
     _diffusion.setTarget (plain (kDiffusion) / 100.0);
-    _damperGain.setTarget (decibelsToGain (-plain (kDamper)));
+    _damperGain.setTarget (Hadronyche::dbToGain (-plain (kDamper)));
     _feedback.setTarget (plain (kFeedback) / 100.0);
-    _dryGain.setTarget (dryGainFor (plain (kDryWet)));
-    _wetGain.setTarget (wetGainFor (plain (kDryWet)));
-    _volume.setTarget (volumeToGain (plain (kVolume)));
+    _dryGain.setTarget (Hadronyche::dryGain (plain (kDryWet)));
+    _wetGain.setTarget (Hadronyche::wetGain (plain (kDryWet)));
+    _volume.setTarget (Hadronyche::volumeToGain (plain (kVolume)));
 }
 
 // Moves everything straight to its current target, for when nobody can hear it moving.
@@ -240,7 +179,7 @@ void Processor::render (const float* inputLeft, const float* inputRight, float* 
 
 tresult PLUGIN_API Processor::process (Vst::ProcessData& data)
 {
-    readParameterChanges (data.inputParameterChanges);
+    _params.readChanges (data.inputParameterChanges);
 
     if (data.numOutputs == 0 || data.numSamples == 0)
         return kResultOk;
@@ -253,7 +192,7 @@ tresult PLUGIN_API Processor::process (Vst::ProcessData& data)
         return kResultOk;
     }
 
-    const FlushDenormals flushDenormals;
+    const Hadronyche::FlushDenormals flushDenormals;
 
     if (data.processContext && (data.processContext->state & Vst::ProcessContext::kTempoValid) != 0
         && std::isfinite (data.processContext->tempo) && data.processContext->tempo > 0.0)
@@ -322,11 +261,7 @@ tresult PLUGIN_API Processor::getState (IBStream* state)
     if (!state)
         return kResultFalse;
 
-    ParamValues values {};
-    for (size_t id = 0; id < kParamCount; ++id)
-        values[id] = _params[id];
-
-    return writeParamState (state, values) ? kResultOk : kResultFalse;
+    return writeParamState (state, _params.snapshot ()) ? kResultOk : kResultFalse;
 }
 
 } // namespace DiffusionDelay

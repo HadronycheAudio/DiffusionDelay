@@ -3,12 +3,12 @@
 #include "Parameters.h"
 #include "PluginConfig.h"
 #include "dsp/DiffusionLoop.h"
-#include "dsp/Smoother.h"
+
+#include "hadronyche/dsp/Smoother.h"
+#include "hadronyche/vst/ParamStore.h"
 
 #include "public.sdk/source/vst/vstaudioeffect.h"
 
-#include <array>
-#include <atomic>
 #include <cstdint>
 
 namespace DiffusionDelay {
@@ -39,15 +39,15 @@ public:
 private:
     double plain (ParamId id) const;
     double getTimeMs () const;
-    void readParameterChanges (Steinberg::Vst::IParameterChanges* changes);
     void applyParameters ();
     void snapSmoothers ();
     void updateControls ();
     void prepareDsp ();
     void render (const float* inputLeft, const float* inputRight, float* outputLeft, float* outputRight, Steinberg::int32 count);
 
-    // Written from the host's threads and read on the audio thread.
-    std::array<std::atomic<double>, kParamCount> _params;
+    using Smoother = Hadronyche::Smoother;
+
+    Hadronyche::ParamStore<kParamCount> _params;
 
     DiffusionLoop _loop;
     int _timeSamples { 0 };
