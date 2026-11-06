@@ -193,10 +193,18 @@ Rules for releases:
 - **The installer is built and tested by HadronycheCore's `tools/macos/`.** `test-installer.sh` writes to `/Library`, so it's meant for CI machines.
 - **The panel test only exists on Windows,** because it uses Windows' mouse messages. Nothing automated opens the panel on macOS, so its look needs checking by eye.
 
+## Linux
+
+- **Use one build folder per configuration, with Ninja:** `cmake -S . -B build/Release -G Ninja -DCMAKE_BUILD_TYPE=Release`, then `cmake --build build/Release --target DiffusionDelayTests DiffusionDelay`. The SDK's Linux output paths break with a multi-configuration generator.
+- **`external/hadronychecore/tools/linux/install-build-packages.sh` installs the build's packages.** gtkmm and SQLite are only needed to configure, and the plug-in doesn't link them.
+- **`panel-opens` needs an X server,** so run `xvfb-run -a ctest ...` where there's no display. It opens and closes the real editor, and nothing more: `panel`, which drives it, only exists on Windows, so the panel's look and its controls need checking by eye.
+- **The version built on a machine only loads on a glibc as new as that machine's.** Nothing here checks that yet, and nothing is released for Linux yet.
+
 ## Known limits
 
 - It has only been used on Windows, and other hosts than the owner's haven't been tried.
 - The installer isn't code-signed, so Windows warns users when they run it. The macOS one isn't signed by Apple or notarized, so macOS refuses it until the user allows it.
+- The Linux version has only been tried briefly, in REAPER on Debian 13, by the owner.
 - The Mac version hasn't been used in a real host on a real Mac. The tests measure its output, and Apple's `auval` validates it, on CI only.
 - Holding a loud note into 100% feedback can reach about +9 dB, which is where the limiter in the feedback stops it. There's no limiter on the output.
 - At 100% feedback, the mass settles below the first repeat, by 1.2 dB at 100% Diffusion and 4.4 dB at 30%. The output is a stereo tap of eight channels, so it can't hear all the energy once it has scattered, and the output gain can't make up for all of that without the first repeat becoming louder than the input.
