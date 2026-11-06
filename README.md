@@ -8,7 +8,9 @@ A VST® 3 effect by Hadronyche: an echo with a reverb inside its feedback loop. 
 
 ## Download
 
-Get the installer from the [latest release](https://github.com/HadronycheAudio/DiffusionDelay/releases/latest). It needs 64-bit Windows 10 or later, and installs to `C:\Program Files\Common Files\VST3`. The installer isn't code-signed, so Windows will probably warn you: choose **More info**, then **Run anyway**.
+**On Windows,** get the installer from the [latest release](https://github.com/HadronycheAudio/DiffusionDelay/releases/latest). It needs 64-bit Windows 10 or later, and installs to `C:\Program Files\Common Files\VST3`. The installer isn't code-signed, so Windows will probably warn you: choose **More info**, then **Run anyway**.
+
+**On a Mac,** get `DiffusionDelay-<version>-macOS.pkg` from the same page. It's a VST 3 and an Audio Unit, for Intel and Apple Silicon, on macOS 10.15 or later. It installs to `/Library/Audio/Plug-Ins`. The installer isn't signed by Apple, so macOS will refuse it the first time: the release notes explain how to open it. The Mac version hasn't been used in a real host yet.
 
 ## Using it
 
@@ -88,7 +90,7 @@ Copy-Item -Recurse -Force build/VST3/Release/DiffusionDelay.vst3 "C:\Program Fil
 | `src/dsp/DiffusionLoop.h` | The diffusion network and the feedback path, which are the heart of it |
 | `src/dsp/` | Also the delay line and parameter smoothing |
 | `tests/` | Tests that drive the built plug-in like a host |
-| `installer/` | The Windows installer, and the script that tests it |
+| `installer/` | The Windows installer, and the script that tests it. The macOS installer is built by HadronycheCore's `tools/macos/` |
 | `docs/` | The behaviour specification and release notes |
 
 ## Licence
@@ -100,5 +102,6 @@ It's built with the following, which keep their own licences:
 - VST3 SDK: MIT (`external/vst3sdk/LICENSE.txt`)
 - VSTGUI (`external/vst3sdk/vstgui4/LICENSE`)
 - HadronycheCore: MIT (`external/hadronychecore/LICENSE`)
+- Apple's AudioUnitSDK, on macOS only: Apache 2.0
 
 VST is a registered trademark of Steinberg Media Technologies GmbH.
