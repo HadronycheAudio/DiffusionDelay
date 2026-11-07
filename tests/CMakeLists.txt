@@ -32,3 +32,5 @@ set(DIFFUSIONDELAY_TESTS
 )
 
 hadronyche_add_host_tests(DiffusionDelayTests DiffusionDelay ${DIFFUSIONDELAY_TESTS})
+
+hadronyche_add_lv2_tests(DiffusionDelay)
