@@ -1,17 +1,7 @@
 #include "Harness.h"
 
-using namespace Steinberg;
-
 namespace DiffusionDelay {
 namespace Tests {
-
-void Plug::setTempo (double bpm)
-{
-    _tempoContext = {};
-    _tempoContext.state = Vst::ProcessContext::kTempoValid;
-    _tempoContext.tempo = bpm;
-    context = bpm > 0.0 ? &_tempoContext : nullptr;
-}
 
 double measureFrequency (const Samples& samples, double around, double sampleRate)
 {

@@ -33,13 +33,7 @@ hadronyche_add_plugin(DiffusionDelay AU_TYPE aufx AU_SUBTYPE DfDl SOURCES
 )
 
 # --- LV2 ----------------------------------------------------------------------
-hadronyche_add_lv2(DiffusionDelay SOURCES
-    src/PluginEntry.cpp
-    src/Parameters.cpp
-    src/Processor.cpp
-    src/Controller.cpp
-    src/Editor.cpp
-)
+hadronyche_add_lv2(DiffusionDelay)
 
 # --- Tests --------------------------------------------------------------------
 enable_testing()

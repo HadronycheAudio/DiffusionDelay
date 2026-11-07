@@ -3,13 +3,12 @@
 #include "Harness.h"
 #include "Tests.h"
 
-#include "pluginterfaces/base/ustring.h"
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <limits>
+#include <string>
 
 using namespace Steinberg;
 
@@ -465,14 +464,11 @@ void testSyncTime ()
         plug.setTempo (120.0);
         setSynced (plug, testCase.division);
 
-        Vst::String128 string {};
-        plug.controller->getParamStringByValue (kDivision, plug.controller->plainParamToNormalized (kDivision, testCase.division), string);
-        char ascii[128] {};
-        UString (string, str16BufferSize (Vst::String128)).toAscii (ascii, sizeof (ascii));
+        const std::string name = paramText (plug.controller, kDivision, plug.controller->plainParamToNormalized (kDivision, testCase.division));
 
         const size_t found = measureRepeat (plug, testCase.samples);
-        std::printf ("  %-5s expected at %zu, found at %zu\n", ascii, testCase.samples, found);
-        check ("the repeat lands on the note, and the list is in the same order", found == testCase.samples && std::string (ascii) == testCase.name);
+        std::printf ("  %-5s expected at %zu, found at %zu\n", name.c_str (), testCase.samples, found);
+        check ("the repeat lands on the note, and the list is in the same order", found == testCase.samples && name == testCase.name);
     }
 }
 
@@ -832,11 +828,7 @@ void testParameterText ()
     Plug plug;
 
     const auto text = [&] (ParamId id, double plain) {
-        Vst::String128 string {};
-        plug.controller->getParamStringByValue (id, plug.controller->plainParamToNormalized (id, plain), string);
-        char ascii[128] {};
-        UString (string, str16BufferSize (Vst::String128)).toAscii (ascii, sizeof (ascii));
-        return std::string (ascii);
+        return paramText (plug.controller, id, plug.controller->plainParamToNormalized (id, plain));
     };
 
     check ("Time", text (kTime, 375.0) == "375");
@@ -846,16 +838,12 @@ void testParameterText ()
     check ("Sync", text (kSync, 0.0) == "Off" && text (kSync, 1.0) == "On");
     check ("Division", text (kDivision, 8.0) == "1/8D" && text (kDivision, 18.0) == "4/1");
 
-    Vst::ParamValue listValue = 0.0;
-    Vst::String128 typedDivision {};
-    UString (typedDivision, str16BufferSize (Vst::String128)).fromAscii ("1/4T");
-    check ("a typed division is understood", plug.controller->getParamValueByString (kDivision, typedDivision, listValue) == kResultOk);
+    double listValue = 0.0;
+    check ("a typed division is understood", paramFromText (plug.controller, kDivision, "1/4T", listValue));
     check ("and lands where it should", plug.controller->normalizedParamToPlain (kDivision, listValue) == 7.0);
 
-    Vst::ParamValue value = 0.0;
-    Vst::String128 typed {};
-    UString (typed, str16BufferSize (Vst::String128)).fromAscii ("500");
-    check ("a typed value is understood", plug.controller->getParamValueByString (kTime, typed, value) == kResultOk);
+    double value = 0.0;
+    check ("a typed value is understood", paramFromText (plug.controller, kTime, "500", value));
     check ("and lands where it should", std::abs (plug.controller->normalizedParamToPlain (kTime, value) - 500.0) < 0.01);
 }
 

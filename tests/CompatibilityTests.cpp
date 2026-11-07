@@ -25,19 +25,6 @@ namespace {
 static_assert (kTime == 0 && kFeedback == 1 && kDiffusion == 2 && kDamper == 3, "Parameter IDs are saved in projects");
 static_assert (kDryWet == 4 && kVolume == 5 && kSync == 6 && kDivision == 7, "Parameter IDs are saved in projects");
 
-template <typename T>
-T readAt (const std::vector<char>& bytes, size_t offset)
-{
-    T value {};
-    std::memcpy (&value, bytes.data () + offset, sizeof (value));
-    return value;
-}
-
-bool nearly (double a, double b)
-{
-    return std::abs (a - b) < 1e-6 * std::max (1.0, std::abs (b));
-}
-
 } // namespace
 
 void testClassIds ()
