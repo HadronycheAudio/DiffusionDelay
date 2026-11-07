@@ -7,7 +7,6 @@
 #include "hadronyche/testhost/Host.h"
 
 #include <cstddef>
-#include <string>
 #include <vector>
 
 namespace DiffusionDelay {
@@ -15,18 +14,7 @@ namespace Tests {
 
 using namespace Hadronyche::TestHost;
 
-class Plug : public PlugBase
-{
-public:
-    using PlugBase::PlugBase;
-
-    // What the host says the tempo is from now on. A plug-in starts with no tempo from the host at all, and
-    // zero goes back to that.
-    void setTempo (double bpm);
-
-private:
-    Steinberg::Vst::ProcessContext _tempoContext {};
-};
+using Plug = PlugBase;
 
 double measureFrequency (const Samples& samples, double around, double sampleRate = kSampleRate);
 

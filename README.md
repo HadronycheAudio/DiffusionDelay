@@ -156,7 +156,7 @@ Copy-Item -Recurse -Force build/VST3/Release/DiffusionDelay.vst3 "C:\Program Fil
 | `src/dsp/DiffusionLoop.h` | The diffusion network and the feedback path, which are the heart of it |
 | `src/dsp/` | Also the delay line and parameter smoothing |
 | `tests/` | Tests that drive the built plug-in like a host |
-| `installer/` | The Windows installer, and the script that tests it. The macOS installer and the Linux tarball are built by HadronycheCore's `tools/macos/` and `tools/linux/` |
+| `installer/` | The Windows installer. HadronycheCore's `tools/windows/` tests it, and its `tools/macos/` and `tools/linux/` build the macOS installer and the Linux tarballs |
 | `docs/` | The behaviour specification and release notes |
 
 ## Contributing
