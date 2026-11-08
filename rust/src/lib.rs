@@ -202,7 +202,7 @@ impl Processor for DiffusionDelay {
         }
     }
 
-    fn prepare(&mut self, sample_rate: f64, _max_block_size: usize) {
+    fn prepare(&mut self, sample_rate: f64, _max_block_size: usize, params: &Params<'_>) {
         self.sample_rate = sample_rate;
         self.network.prepare(sample_rate, MAX_TIME_MS / 1000.0);
         self.network
@@ -226,12 +226,7 @@ impl Processor for DiffusionDelay {
         self.silent_samples = 0;
         self.is_first_block = true;
 
-        // The parameters' defaults, until the first block brings the host's values.
-        let defaults: Vec<f64> = PARAMS
-            .iter()
-            .map(|spec| spec.plain_to_normalized(spec.default))
-            .collect();
-        self.apply_parameters(&Params::new(&PARAMS, &defaults));
+        self.apply_parameters(params);
         self.snap_smoothers();
         self.update_controls();
     }
@@ -278,7 +273,7 @@ impl Processor for DiffusionDelay {
     }
 
     /// At 100% feedback, it never ends. The silence of each block says when it has.
-    fn tail(&self) -> Tail {
+    fn tail(&self, _sample_rate: f64) -> Tail {
         Tail::Infinite
     }
 }
