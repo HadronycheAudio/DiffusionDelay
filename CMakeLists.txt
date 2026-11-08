@@ -21,17 +21,13 @@ hadronyche_add_rust(DiffusionDelay)
 hadronyche_add_plugin(DiffusionDelay AU_TYPE aufx AU_SUBTYPE DfDl SOURCES
     src/PluginConfig.h
     src/PluginEntry.cpp
-    src/Rust.h
-    src/Parameters.h
-    src/Parameters.cpp
+    src/ParamIds.h
     src/Processor.h
     src/Processor.cpp
     src/Controller.h
     src/Controller.cpp
     src/Editor.h
     src/Editor.cpp
-    src/dsp/DelayLine.h
-    src/dsp/DiffusionLoop.h
 )
 
 # --- LV2 ----------------------------------------------------------------------

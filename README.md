@@ -101,7 +101,7 @@ The plug-in has no latency.
 
 - Visual Studio 2022 with the "Desktop development with C++" workload
 - CMake 3.25 or newer
-- [Rust](https://rustup.rs), which builds `rust/` into the plug-in
+- [Rust](https://rustup.rs), which builds the signal processing in `rust/` into the plug-in
 - Git
 
 ## Getting the code
@@ -150,13 +150,13 @@ Copy-Item -Recurse -Force build/VST3/Release/DiffusionDelay.vst3 "C:\Program Fil
 | --- | --- |
 | `src/PluginConfig.h` | Plug-in name, vendor details and class IDs |
 | `src/PluginEntry.cpp` | VST3 module entry, registers the classes below |
-| `src/Parameters.*` | Parameter IDs, ranges and text, plus saving and loading their values |
-| `src/Processor.*` | Runs the loop, the dry path and the controls |
+| `rust/src/lib.rs` | The parameters, with their IDs, ranges and text, and the processor that runs the loop, the dry path and the controls |
+| `rust/src/diffusion_loop.rs` | The diffusion network and the feedback path, which are the heart of it |
+| `rust/src/delay_line.rs` | The delay line whose length glides |
+| `src/ParamIds.h` | The parameter IDs for the C++ side, generated from `rust/` |
+| `src/Processor.*` | The VST3 audio component, which HadronycheCore's `RustProcessor` runs on the Rust side |
 | `src/Controller.*` | Registers the parameters and creates the editor |
 | `src/Editor.*` | The plug-in window |
-| `src/dsp/DiffusionLoop.h` | The diffusion network and the feedback path, which are the heart of it |
-| `src/dsp/` | Also the delay line and parameter smoothing |
-| `rust/` | The start of the signal processing in Rust, built into the plug-in, with `src/Rust.h` declaring what it exports |
 | `tests/` | Tests that drive the built plug-in like a host |
 | `installer/` | The Windows installer. HadronycheCore's `tools/windows/` tests it, and its `tools/macos/` and `tools/linux/` build the macOS installer and the Linux tarballs |
 | `docs/` | The behaviour specification and release notes |

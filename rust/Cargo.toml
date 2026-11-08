@@ -10,10 +10,11 @@ license = "MIT"
 publish = false
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["staticlib", "lib"]
 
 [dependencies]
 hadronyche-dsp = { path = "../external/hadronychecore/rust/hadronyche-dsp" }
+hadronyche-plugin = { path = "../external/hadronychecore/rust/hadronyche-plugin" }
 
 [workspace]
 

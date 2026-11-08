@@ -7,8 +7,13 @@ name = "diffusiondelay"
 version = "0.0.0"
 dependencies = [
  "hadronyche-dsp",
+ "hadronyche-plugin",
 ]
 
 [[package]]
 name = "hadronyche-dsp"
+version = "0.1.0"
+
+[[package]]
+name = "hadronyche-plugin"
 version = "0.1.0"
