@@ -6,7 +6,9 @@ DiffusionDelay is a VST® 3 effect for Windows: an echo with a lossless diffusio
 
 `docs/signal-path.md` is the behaviour specification. `README.md` covers building and usage.
 
-Code shared with the other Hadronyche plug-ins is in the `HadronycheCore` submodule, at `external/hadronychecore`: the parameters' curves and saved format, the processor and controller base classes, the module entry, `PanelEditor`, `Smoother`, the test host, the build setup and CI. Its `AGENTS.md` has its own rules.
+Code shared with the other Hadronyche plug-ins is in the `HadronycheCore` submodule, at `external/hadronychecore`: the parameters' curves and saved format, the frame that the Rust side fits into on both sides of the boundary, the module entry, `PanelEditor`, `Smoother`, the test host, the build setup and CI. Its `AGENTS.md` has its own rules.
+
+The signal processing and the parameter table are Rust, in `rust/`. The crate implements HadronycheCore's `Processor` trait, and depends on its `rust/hadronyche-plugin` and `rust/hadronyche-dsp` through the submodule. `hadronyche_add_rust` in `CMakeLists.txt` builds it into the plug-in, and the C++ in `src/` is the VST3 classes around it, on `RustProcessor` and `RustController`. Rust from [rustup](https://rustup.rs) is a build requirement on every system.
 
 ## Commands
 
@@ -42,7 +44,7 @@ ctest --test-dir build -C Release -N
 Copy-Item -Recurse -Force build/VST3/Release/DiffusionDelay.vst3 "C:\Program Files\Common Files\VST3\"
 ```
 
-There's no linter or formatter.
+There's no linter or formatter for the C++. In `rust/`, `cargo fmt` formats, and `cargo clippy --all-targets -- -D warnings` and `cargo test` have to pass. One of those tests checks that `src/ParamIds.h` is what the parameter table generates, and `HADRONYCHE_UPDATE_HEADERS=1 cargo test` rewrites it.
 
 Follow the existing style, which comes from the SDK: a space before call parentheses (`foo (x)`), `_member` for private members, `kName` for constants, and comments that explain why rather than what.
 
@@ -54,19 +56,20 @@ People use this plug-in in real projects. Breaking these rules damages saved pro
 
 - **Never change the Audio Unit codes,** `aufx` `DfDl` here and the manufacturer `Hdrn` in HadronycheCore. Hosts use them to find the plug-in in saved projects.
 - **Never change the class IDs in `src/PluginConfig.h`.** Hosts use them to find the plug-in in saved projects.
-- **Never renumber, reorder or remove entries in `ParamId`** (`src/Parameters.h`). Their values are saved in projects and automation. Add new parameters just before `kParamCount`, and add the matching row to `kSpecs` in `src/Parameters.cpp`, which is listed in the same order.
+- **Never reorder or remove an entry in `Param`** (`rust/src/lib.rs`). Their positions are saved in projects and automation, and `src/ParamIds.h` is generated from them. Add a new parameter at the end, with its spec on the same line.
 - **Don't change the range or curve of an existing parameter.** Hosts store values normalized to 0..1, so this silently changes what saved projects sound like. If it's unavoidable, migrate old values and bump the state version.
-- **Only ever add to the end of `kSyncModes` and `kDivisions`,** and keep `kDivisionBeats` in step with `kDivisions`. Projects save a position in the list, so a new note value goes at the end even though the list is otherwise in order of length.
-- **Changing the saved format requires bumping `kStateVersion` and still reading every older version.** The format is `int32` version, `int32` count, then `int32` ID and `double` normalized value pairs (`writeParamState`). A state without a parameter leaves it at its default, and an unknown one is skipped.
+- **Only ever add to the end of `SYNC_MODES` and `DIVISIONS`,** and keep `DIVISION_BEATS` in step with `DIVISIONS`. Projects save a position in the list, so a new note value goes at the end even though the list is otherwise in order of length.
+- **Changing the saved format requires bumping `STATE_VERSION` and converting every older version in `migrate_param`.** The format is HadronycheCore's `ParamState.h`: `int32` version, `int32` count, then `int32` ID and `double` normalized value pairs. A state without a parameter leaves it at its default, and an unknown one is skipped.
 - **Loading must tolerate missing or damaged data.**
-- **Changing the constants in `DiffusionLoop` changes how saved projects sound,** though nothing fails. That goes for the share tables, the angles, the output gain and the damper's corner.
+- **Changing the constants in `diffusion_loop.rs` changes how saved projects sound,** though nothing fails. That goes for the share tables, the angles, the output gain and the damper's corner.
+- **The Rust port is bit for bit what the C++ was,** which HadronycheCore's `tools/nulltest/` showed against the last C++ build, so a change in the sound is a change, not rounding. Keep the arithmetic in the order it's written: Rust never contracts `a * b + c` into one rounding, and neither did the C++ build, and `f32` and `f64` are kept where they were.
 
 ### The loop
 
 The owner's main requirement is that at 100% feedback the repeats never end, while they dissolve. That only works if the loop has a gain of exactly 1 at every frequency, so:
 
 - **Everything between the input and the output of the network has to be lossless.** That means delays and rotations only. A gain, a filter, a convolution or a wet/dry blend in there will either fade the repeats, make them ring at some pitches, or make the loop run away, and it may only show after a minute at 100%.
-- **Every row of `kStageShares` has to add up to 1000,** and `setTime` has to keep each channel's stages adding up to exactly T. Otherwise, a clean echo smears, and it's not exactly on time.
+- **Every row of `STAGE_SHARES` has to add up to 1000,** and `set_time` has to keep each channel's stages adding up to exactly T, which the crate's tests check. Otherwise, a clean echo smears, and it's not exactly on time.
 - **What's in the feedback path may never have a gain above 1 at any frequency.** That's why the damper is a first-order shelf, the DC blocker has its gain, and interpolation is linear.
 - **Don't add a sample to the trip around the loop.** Returning signal goes in on the same sample that it comes out, which is safe because every line has been read by then, and `feedback-decay` fails otherwise.
 - **The damper stays after the output tap,** so that the first repeat isn't damped.
@@ -74,14 +77,15 @@ The owner's main requirement is that at 100% feedback the repeats never end, whi
 
 ### The audio thread
 
-`Processor::process` and everything it calls runs on the audio thread, including `src/dsp/`, except `DiffusionLoop::prepare` and `DelayLine::prepare`.
+`DiffusionDelay::process` in `rust/src/lib.rs`, and everything it calls, runs on the audio thread. `prepare`, and the `prepare` of the loop and the lines, don't.
 
-- **No allocation, locks, file access, system calls or anything else that can block.** This includes `std::vector` growth, `std::string` and `std::function` copies. The failure is audio dropouts that may not show up in testing.
+- **No allocation, locks, file access, system calls or anything else that can block.** This includes a `Vec` growing. The failure is audio dropouts that may not show up in testing, though `lv2-matches-vst3` fails if a block allocates.
+- **A panic is a bug, even though HadronycheCore's boundary catches it.** After one, that instance of the plug-in stays silent for good, which is what a user would notice.
 
 ### Sound and timing
 
 - **The output doesn't depend on the block size,** and `block-sizes` checks for exact equality. Anything that changes with time has to count samples, not blocks.
-- **`Hadronyche::Smoother` must stay double precision.** In single precision it stalls just short of its target. The same goes for the DC blocker, whose pole is very close to 1.
+- **`Smoother` must stay double precision, and `step_f32` is not `step`.** In single precision it stalls just short of its target. The same goes for the DC blocker, whose pole is very close to 1.
 
 ### Decisions made by the project owner
 
@@ -98,13 +102,14 @@ In `docs/signal-path.md`, **Requirement** marks the owner's decisions and **Prop
 
 - **Don't edit anything in `external/vst3sdk`.** It's a submodule pinned to `v3.8.1_build_84`. `git submodule status` shows a misleading `v3.7.3...` label for that same commit, so check with `git -C external/vst3sdk describe --tags`.
 - **Don't edit `external/hadronychecore` from here.** Change it in its own repository, and move the submodule here afterwards, once the new version has been compared with the old as its `AGENTS.md` describes.
+- **The Rust side builds from the submodule, even with `HADRONYCHE_CORE_DIR` set,** because Cargo can't redirect a path dependency. To work on both, point the submodule at the commit in the other checkout, and the configure stops when the two differ.
 - Don't change git configuration. Commit or push only when asked.
 
 ## Architecture
 
 ### Signal path
 
-`Processor::render` runs this for every sample:
+`DiffusionDelay::render` in `rust/src/lib.rs` runs this for every sample:
 
 ```
              ┌──────────────────────────────────────────────────────┐
@@ -118,19 +123,19 @@ In (stereo) ─┤                                                      ├→ D
 
 | Thread | Runs | Talks to the others through |
 | --- | --- | --- |
-| Audio | `Processor::process` | Atomics only |
+| Audio | `RustProcessor::process`, and `DiffusionDelay::process` in Rust | Atomics only |
 | UI | `Editor`, on a 33 ms timer | The controller's parameters |
 | Host | `setState`, `getState`, `setActive` | Atomics |
 
-The processor and controller share no memory, so the plug-in is marked as distributable. `getParamSpec` is the one definition of every parameter's range and text, shared by `Processor`, `Controller` and `Editor`. The last parameter value per block is used, followed by smoothing.
+The processor and controller share no memory, so the plug-in is marked as distributable. `PARAMS` in `rust/src/lib.rs` is the one definition of every parameter's range and text: the Rust side reads it directly, and `Controller`, `Editor` and `src/lv2/PluginInfo.cpp` read it through `Hadronyche::RustPlugin::getSpec`. The last parameter value per block is used, followed by smoothing.
 
 ### The network
 
-`docs/signal-path.md` explains how `DiffusionLoop` works, and why it isn't a generated impulse response.
+`docs/signal-path.md` explains how `DiffusionLoop`, in `rust/src/diffusion_loop.rs`, works, and why it isn't a generated impulse response.
 
 - **Control rate:** Diffusion and Damper update every 16 samples, because of their sines and cosines. Feedback and the gains run per sample.
 - **Memory:** the lines are sized for the longest Time when the plug-in is activated, which is about 24 MB at 48 kHz and 94 MB at 192 kHz. They're not resized, so the audio thread never allocates.
-- **Tempo:** read at the start of each block, and `Processor::getTimeMs` turns it and Division into a time. Sync is otherwise just another way of setting Time.
+- **Tempo:** read at the start of each block, and `DiffusionDelay::time_ms` turns it and Division into a time. Sync is otherwise just another way of setting Time.
 - **Time:** each line glides to its own whole number of samples with the same time constant, so that the channels stay equal all the way there, and `DelayLine::read` only interpolates while moving.
 - **Sleep:** with a silent input, and a silent loop for longer than the longest path through it, the plug-in stops working and flags the output as silent. Parameter changes then apply without a ramp.
 
