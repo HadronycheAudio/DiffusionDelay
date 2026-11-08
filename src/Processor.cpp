@@ -1,6 +1,7 @@
 #include "Processor.h"
 
 #include "Controller.h"
+#include "Rust.h"
 
 #include "hadronyche/dsp/Gain.h"
 
@@ -166,12 +167,7 @@ void Processor::renderBlock (Vst::ProcessData& data, Vst::AudioBusBuffers& outpu
     }
 
     // Looks at the samples rather than the host's silence flags, which are only ever a hint.
-    float inputPeak = 0.0f;
-    if (inputLeft)
-    {
-        for (int32 i = 0; i < data.numSamples; ++i)
-            inputPeak = std::max ({ inputPeak, std::abs (inputLeft[i]), std::abs (inputRight[i]) });
-    }
+    const float inputPeak = diffusiondelay_peak (inputLeft, inputRight, static_cast<size_t> (data.numSamples));
 
     // Quiet for as long as anything can take to get through, and there's nothing left to come out.
     const bool isAsleep = inputPeak < kSilentPeak && _silentSamples >= _loop.getLongestPathSamples () + data.numSamples;

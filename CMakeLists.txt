@@ -17,9 +17,11 @@ include("${HADRONYCHE_CORE_DIR}/cmake/HadronychePlugin.cmake")
 hadronyche_use_vst3_sdk()
 
 # --- Plug-in ------------------------------------------------------------------
+hadronyche_add_rust(DiffusionDelay)
 hadronyche_add_plugin(DiffusionDelay AU_TYPE aufx AU_SUBTYPE DfDl SOURCES
     src/PluginConfig.h
     src/PluginEntry.cpp
+    src/Rust.h
     src/Parameters.h
     src/Parameters.cpp
     src/Processor.h

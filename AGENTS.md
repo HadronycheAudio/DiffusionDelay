@@ -8,6 +8,8 @@ DiffusionDelay is a VST® 3 effect for Windows: an echo with a lossless diffusio
 
 Code shared with the other Hadronyche plug-ins is in the `HadronycheCore` submodule, at `external/hadronychecore`: the parameters' curves and saved format, the processor and controller base classes, the module entry, `PanelEditor`, `Smoother`, the test host, the build setup and CI. Its `AGENTS.md` has its own rules.
 
+The signal processing is moving to Rust, in `rust/`, one piece at a time. The crate depends on HadronycheCore's `rust/hadronyche-dsp` through the submodule, `hadronyche_add_rust` in `CMakeLists.txt` builds it into the plug-in, and `src/Rust.h` declares what it exports. Rust from [rustup](https://rustup.rs) is a build requirement on every system.
+
 ## Commands
 
 Windows x64 with Visual Studio 2022 and CMake 3.25 or newer is where this is developed. macOS is built and tested by CI, on Intel and Apple Silicon, so see [macOS](#macos).
@@ -42,7 +44,7 @@ ctest --test-dir build -C Release -N
 Copy-Item -Recurse -Force build/VST3/Release/DiffusionDelay.vst3 "C:\Program Files\Common Files\VST3\"
 ```
 
-There's no linter or formatter.
+There's no linter or formatter for the C++. In `rust/`, `cargo fmt` formats, and `cargo clippy --all-targets -- -D warnings` has to pass.
 
 Follow the existing style, which comes from the SDK: a space before call parentheses (`foo (x)`), `_member` for private members, `kName` for constants, and comments that explain why rather than what.
 
@@ -74,9 +76,10 @@ The owner's main requirement is that at 100% feedback the repeats never end, whi
 
 ### The audio thread
 
-`Processor::process` and everything it calls runs on the audio thread, including `src/dsp/`, except `DiffusionLoop::prepare` and `DelayLine::prepare`.
+`Processor::process` and everything it calls runs on the audio thread, including `src/dsp/` and everything in `rust/`, except `DiffusionLoop::prepare` and `DelayLine::prepare`.
 
 - **No allocation, locks, file access, system calls or anything else that can block.** This includes `std::vector` growth, `std::string` and `std::function` copies. The failure is audio dropouts that may not show up in testing.
+- **Nothing that crosses from C++ into `rust/` may panic.** A panic through `extern "C"` is undefined behaviour. The Rust side works on slices that the C++ side owns, and `src/Rust.h` and `rust/src/lib.rs` have to agree on every signature, because nothing checks them against each other.
 
 ### Sound and timing
 
@@ -98,6 +101,7 @@ In `docs/signal-path.md`, **Requirement** marks the owner's decisions and **Prop
 
 - **Don't edit anything in `external/vst3sdk`.** It's a submodule pinned to `v3.8.1_build_84`. `git submodule status` shows a misleading `v3.7.3...` label for that same commit, so check with `git -C external/vst3sdk describe --tags`.
 - **Don't edit `external/hadronychecore` from here.** Change it in its own repository, and move the submodule here afterwards, once the new version has been compared with the old as its `AGENTS.md` describes.
+- **The Rust side builds from the submodule, even with `HADRONYCHE_CORE_DIR` set,** because Cargo can't redirect a path dependency. To work on both, point the submodule at the commit in the other checkout, and the configure stops when the two differ.
 - Don't change git configuration. Commit or push only when asked.
 
 ## Architecture
