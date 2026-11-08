@@ -12,6 +12,7 @@
 //! two give the same bits.
 
 use crate::delay_line::DelayLine;
+use hadronyche_dsp::pow10;
 
 pub const CHANNELS: usize = 8;
 pub const STAGES: usize = 4;
@@ -211,7 +212,7 @@ impl DiffusionLoop {
         // The output adds up four channels. A clean repeat is the same on all four, so they add to full level, but
         // sound that has scattered is on one at a time and comes out 6 dB lower, though its energy is all still in
         // the loop. This makes up for most of that, outside the loop, so that the sound doesn't drop as it dissolves.
-        self.output_gain = (0.5 * 10f64.powf(amount * OUTPUT_MAKEUP_DB / 20.0)) as f32;
+        self.output_gain = (0.5 * pow10(amount * OUTPUT_MAKEUP_DB / 20.0)) as f32;
     }
 
     /// The shelf's gain above DAMPER_HZ, on each pass. At 1, it changes nothing.
