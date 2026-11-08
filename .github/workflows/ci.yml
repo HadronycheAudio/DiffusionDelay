@@ -10,7 +10,7 @@ on:
 
 jobs:
   ci:
-    uses: HadronycheAudio/HadronycheCore/.github/workflows/plugin-ci.yml@a8e86190482bcc82ca9248727862edc696c72da5
+    uses: HadronycheAudio/HadronycheCore/.github/workflows/plugin-ci.yml@2e6d52f61ac57f0d1f1241813ef3ce1cf863d324
     # The release job needs write, and the others take read.
     permissions:
       contents: write
